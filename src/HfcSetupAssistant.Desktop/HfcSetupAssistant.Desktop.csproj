@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>HFC Setup Assistant</AssemblyName>
+    <Product>HFC Setup Assistant</Product>
+    <Title>HFC Setup Assistant</Title>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="..\HfcSetupAssistant.Core\HfcSetupAssistant.Core.csproj" /></ItemGroup>
+</Project>
