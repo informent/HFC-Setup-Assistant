@@ -14,8 +14,8 @@ jobs:
   verify:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Run calculation and persistence checks
@@ -24,7 +24,7 @@ jobs:
         run: dotnet build src/HfcSetupAssistant.Desktop/HfcSetupAssistant.Desktop.csproj -c Release -p:UseSharedCompilation=false -p:NuGetAudit=false
       - name: Publish self-contained Windows app
         run: dotnet publish src/HfcSetupAssistant.Desktop/HfcSetupAssistant.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:NuGetAudit=false -o artifacts/win-x64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: HFC-Setup-Assistant-win-x64
           path: artifacts/win-x64/HFC Setup Assistant.exe
