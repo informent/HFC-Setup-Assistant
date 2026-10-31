@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private JobSession _session = new();
     private readonly List<WorkProfile> _profiles;
     private bool _loading;
+    private bool _uiReady;
     private bool _profileInputsValid = true;
     private string? _currentPath;
     private readonly ObservableCollection<ManualEntry> _entries = [];
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _uiReady = true;
         try { _profiles = LocalStore.LoadProfiles(); }
         catch (InvalidDataException ex)
         {
@@ -148,7 +150,7 @@ public partial class MainWindow : Window
 
     private void InputChanged(object sender, EventArgs e)
     {
-        if (_loading) return;
+        if (!_uiReady || _loading) return;
         _session.EquipmentType = (EquipmentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Trunk";
         _session.EquipmentModel = EquipmentModel.Text;
         _session.AssetId = AssetId.Text;
@@ -166,7 +168,7 @@ public partial class MainWindow : Window
 
     private void EquipmentType_Changed(object sender, SelectionChangedEventArgs e)
     {
-        if (_loading) return;
+        if (!_uiReady || _loading) return;
         var type = (EquipmentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Trunk";
         if (type == "Line extender" && _session.EquipmentType != "Line extender" && PilotRowsAreBlank())
         {
