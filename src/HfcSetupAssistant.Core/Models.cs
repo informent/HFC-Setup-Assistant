@@ -51,6 +51,22 @@ public sealed class ManualEntry
     public string Basis { get; set; } = "Supervisor-approved manual entry";
 }
 
+public sealed class PrecedingAmplifierReference
+{
+    public string HighMainTargetDbmv { get; set; } = "39.0";
+    public string SyncControlLabel { get; set; } = "Sync with current target levels";
+    public string SyncControlNote { get; set; } = "Control is visible in the photo; switch behavior is unverified.";
+    public string CroppedSectionNote { get; set; } = "Other fields are outside the photographed crop.";
+}
+
+public sealed class PilotSettingEntry
+{
+    public string Destination { get; set; } = "";
+    public string Value { get; set; } = "";
+    public string Unit { get; set; } = "";
+    public string Basis { get; set; } = "User-confirmed line extender entry set";
+}
+
 public sealed class JobSession
 {
     public int SchemaVersion { get; set; } = 1;
@@ -65,6 +81,7 @@ public sealed class JobSession
     public string HighReadingDbmv { get; set; } = "";
     public PilotColumn[] PilotColumns { get; set; } = Enumerable.Range(0, 4).Select(i => new PilotColumn { Label = PilotExample.Labels[i] }).ToArray();
     public List<ManualEntry> ManualEntries { get; set; } = [];
+    public PrecedingAmplifierReference? PrecedingAmplifier { get; set; }
 }
 
 public sealed record CheckResult(bool IsValid, string Message, decimal? LowErrorDb, decimal? HighErrorDb, decimal? ActualTiltDb, decimal? TiltErrorDb, bool? LowPass, bool? HighPass, bool? TiltPass, bool? OverallPass);

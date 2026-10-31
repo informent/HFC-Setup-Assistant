@@ -15,8 +15,12 @@ var checks = new List<(string Name, Action Run)>
     ("missing frequency blocks PASS", MissingFrequency),
     ("invalid frequency blocks PASS", InvalidFrequency),
     ("missing reference point blocks PASS", MissingPoint),
+    ("invalid profile ranges block PASS", InvalidProfile),
+    ("line extender entry set preloads configuration and leaves readings empty", LineExtenderPreset),
     ("screenshot example keeps configured targets and deviations", ScreenshotExample),
     ("job save and reopen preserves profile, inputs, and column order", JobRoundTrip),
+    ("custom profiles save and reopen", ProfileRoundTrip),
+    ("damaged profile files are reported and preserved", DamagedProfilePreserved),
     ("CSV retains units and Pilot order", CsvOrder)
 };
 
@@ -61,7 +65,29 @@ static void MissingPoint()
     var r = TargetChecker.Evaluate("28", "38", p);
     Equal(false, r.IsValid); Equal(null, r.OverallPass);
 }
+static void InvalidProfile()
+{
+    var p = ValidProfile(); p.LowMinimumDbmv = 30;
+    var r = TargetChecker.Evaluate("28", "38", p);
+    Equal(false, r.IsValid); Equal(null, r.OverallPass); Equal(null, r.LowErrorDb);
+    Equal(false, TargetChecker.ValidateProfile(p) is null);
+}
 static WorkProfile ValidProfile() => new() { LowFrequencyMhz = "141", HighFrequencyMhz = "711", MeasurementPoint = "Verified point" };
+static void LineExtenderPreset()
+{
+    var job = new JobSession();
+    PilotExample.LoadLineExtenderSetup(job);
+    Equal("Line extender", job.EquipmentType);
+    Equal("28", job.Profile.LowTargetDbmv.ToString()); Equal("38", job.Profile.HighTargetDbmv.ToString());
+    var columns = job.PilotColumns;
+    Equal("711.00", columns[0].FrequencyMhz); Equal("693.00", columns[1].FrequencyMhz);
+    Equal("141.00", columns[2].FrequencyMhz); Equal("153.00", columns[3].FrequencyMhz);
+    Equal(true, columns.All(column => column.Type == "U" && column.StepDownDb == "0" && column.MeasuredDbmv == "" && column.CalcInputDbmv == ""));
+    Equal("39.0", columns[0].ConfiguredTargetDbmv); Equal("39.0", columns[1].ConfiguredTargetDbmv);
+    Equal("29.0", columns[2].ConfiguredTargetDbmv); Equal("29.0", columns[3].ConfiguredTargetDbmv);
+    var entries = PilotExample.GetLineExtenderEntries(job);
+    Equal(17, entries.Count); Equal("39.0", entries[^1].Value); Equal("dBmV", entries[^1].Unit);
+}
 static void ScreenshotExample()
 {
     var job = new JobSession();
@@ -71,6 +97,8 @@ static void ScreenshotExample()
     Equal("0", job.PilotColumns[2].DeviationDb); Equal("-2.2", job.PilotColumns[3].DeviationDb);
     Equal("HI MAIN", job.PilotColumns[0].Label); Equal("HI BACKUP", job.PilotColumns[1].Label);
     Equal("LO MAIN", job.PilotColumns[2].Label); Equal("LO BACKUP", job.PilotColumns[3].Label);
+    Equal("39.0", job.PrecedingAmplifier?.HighMainTargetDbmv);
+    Equal("Sync with current target levels", job.PrecedingAmplifier?.SyncControlLabel);
 }
 static void JobRoundTrip()
 {
@@ -84,6 +112,7 @@ static void JobRoundTrip()
         Equal(job.EquipmentModel, loaded.EquipmentModel); Equal(job.AssetId, loaded.AssetId);
         Equal("test point", loaded.Profile.MeasurementPoint); Equal("711.00", loaded.PilotColumns[0].FrequencyMhz);
         Equal("LO BACKUP", loaded.PilotColumns[3].Label); Equal("26.8", loaded.PilotColumns[3].MeasuredDbmv);
+        Equal("39.0", loaded.PrecedingAmplifier?.HighMainTargetDbmv);
     }
     finally { if (File.Exists(path)) File.Delete(path); }
 }
@@ -106,6 +135,35 @@ static void CsvOrder()
         Equal(true, csv.Contains("\"Tilt\",\"FAIL\""));
         Equal(true, csv.Contains("\"Low minimum\",\"27\",\"dBmV\""));
         Equal(true, csv.Contains("\"Profile\",\"Name\",\"My field targets\""));
+        Equal(true, csv.Contains("\"Values to enter - user-confirmed LE set\",\"HI MAIN / Frequency\",\"711.00\",\"MHz\""));
+        Equal(true, csv.Contains("\"Preceding amplifier target levels\",\"High main\",\"39.0\",\"dBmV\""));
+        Equal(true, csv.Contains("switch behavior is unverified."));
+    }
+    finally { if (File.Exists(path)) File.Delete(path); }
+}
+static void ProfileRoundTrip()
+{
+    var path = Path.Combine(Path.GetTempPath(), $"hfc-profiles-{Guid.NewGuid():N}.json");
+    try
+    {
+        var profile = ValidProfile(); profile.Name = "Remote node"; profile.LowTargetDbmv = 28.5m;
+        LocalStore.SaveProfiles([new WorkProfile(), profile], path);
+        var loaded = LocalStore.LoadProfiles(path);
+        Equal(2, loaded.Count); Equal("Remote node", loaded[1].Name); Equal(28.5m, loaded[1].LowTargetDbmv);
+        Equal("141", loaded[1].LowFrequencyMhz); Equal("Verified point", loaded[1].MeasurementPoint);
+    }
+    finally { if (File.Exists(path)) File.Delete(path); }
+}
+static void DamagedProfilePreserved()
+{
+    var path = Path.Combine(Path.GetTempPath(), $"hfc-profiles-{Guid.NewGuid():N}.json");
+    const string damaged = "{ invalid profile file";
+    try
+    {
+        File.WriteAllText(path, damaged);
+        try { _ = LocalStore.LoadProfiles(path); throw new InvalidOperationException("Expected corrupted profiles to be rejected."); }
+        catch (InvalidDataException) { }
+        Equal(damaged, File.ReadAllText(path));
     }
     finally { if (File.Exists(path)) File.Delete(path); }
 }

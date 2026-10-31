@@ -5,6 +5,7 @@
  Background="#F3F6F8" FontFamily="Segoe UI" WindowStartupLocation="CenterScreen">
  <Window.Resources>
   <DataTemplate x:Key="EntryTemplate"><Border Background="#F5F8FA" CornerRadius="6" Padding="5,5,8,5" Margin="0,0,0,5"><DockPanel><Button DockPanel.Dock="Right" Content="Remove" Tag="{Binding}" Click="RemoveEntry_Click" MinHeight="30" Padding="8,3" Margin="8,0,0,0"/><TextBlock TextWrapping="Wrap" VerticalAlignment="Center" Margin="4,0"><Run Text="{Binding Destination}" FontWeight="SemiBold"/><Run Text="  →  "/><Run Text="{Binding Value}"/><Run Text=" "/><Run Text="{Binding Unit}"/><Run Text="  ·  "/><Run Text="{Binding Basis}" Foreground="#657386"/></TextBlock></DockPanel></Border></DataTemplate>
+  <DataTemplate x:Key="PilotEntryTemplate"><Border Background="#F5F8FA" CornerRadius="6" Padding="9,6" Margin="0,0,0,5"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.5*"/><ColumnDefinition Width="0.75*"/><ColumnDefinition Width="1.6*"/></Grid.ColumnDefinitions><TextBlock Text="{Binding Destination}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Grid.Column="1" TextWrapping="Wrap"><Run Text="{Binding Value}"/><Run Text=" "/><Run Text="{Binding Unit}"/></TextBlock><TextBlock Grid.Column="2" Text="{Binding Basis}" Foreground="#657386" FontSize="11" TextWrapping="Wrap"/></Grid></Border></DataTemplate>
  </Window.Resources>
  <DockPanel>
   <Border DockPanel.Dock="Top" Background="#152936" Padding="24,15">
@@ -20,7 +21,7 @@
    <StackPanel Margin="24,20" MaxWidth="1390" HorizontalAlignment="Center">
     <Border Style="{StaticResource Card}" Padding="18,14">
      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.1*"/><ColumnDefinition Width="1.2*"/></Grid.ColumnDefinitions>
-      <StackPanel Margin="0,0,14,0"><TextBlock Text="Equipment" FontSize="12" Foreground="{StaticResource MutedBrush}"/><ComboBox x:Name="EquipmentType" SelectedIndex="0" SelectionChanged="InputChanged"><ComboBoxItem Content="Trunk"/><ComboBoxItem Content="Line extender"/></ComboBox></StackPanel>
+      <StackPanel Margin="0,0,14,0"><TextBlock Text="Equipment" FontSize="12" Foreground="{StaticResource MutedBrush}"/><ComboBox x:Name="EquipmentType" SelectedIndex="0" SelectionChanged="EquipmentType_Changed"><ComboBoxItem Content="Trunk"/><ComboBoxItem Content="Line extender"/></ComboBox></StackPanel>
       <StackPanel Grid.Column="1" Margin="0,0,14,0"><TextBlock Text="Equipment model" FontSize="12" Foreground="{StaticResource MutedBrush}"/><TextBox x:Name="EquipmentModel" TextChanged="InputChanged"/></StackPanel>
       <StackPanel Grid.Column="2" Margin="0,0,14,0"><TextBlock Text="Node / address / asset ID" FontSize="12" Foreground="{StaticResource MutedBrush}"/><TextBox x:Name="AssetId" TextChanged="InputChanged"/></StackPanel>
      <StackPanel Grid.Column="3"><TextBlock Text="Profile" FontSize="12" Foreground="{StaticResource MutedBrush}"/><DockPanel><ComboBox x:Name="ProfilePicker" SelectionChanged="ProfilePicker_Changed"/><Button Content="New profile" Click="NewProfile_Click" MinHeight="38" Padding="9,5"/><Button Content="Save profile" Click="SaveProfile_Click" MinHeight="38" Padding="9,5" Margin="0"/></DockPanel></StackPanel>
@@ -72,8 +73,8 @@
      <StackPanel Grid.Column="2">
       <Border Style="{StaticResource Card}">
        <StackPanel>
-        <DockPanel><StackPanel><TextBlock Text="Pilot reference" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="Observed labels and four-column order from the supplied photo." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,13"/></StackPanel><Button DockPanel.Dock="Right" Content="Load screenshot example" Click="Example_Click"/></DockPanel>
-        <DataGrid x:Name="PilotGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" RowHeight="41" MinHeight="248" FontSize="12" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" SelectionUnit="Cell" GridLinesVisibility="Horizontal" BorderBrush="#E0E6EC">
+        <DockPanel><StackPanel><TextBlock Text="Pilot reference" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="Four-column Pilot fields in the supplied order. Line extender defaults are user-provided." Foreground="{StaticResource MutedBrush}" Margin="0,3,0,13"/></StackPanel><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="Apply LE entry set" Click="LineExtenderPreset_Click"/><Button Content="Load screenshot example" Click="Example_Click" Margin="0"/></StackPanel></DockPanel>
+        <DataGrid x:Name="PilotGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" RowHeight="41" MinHeight="248" FontSize="12" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" SelectionUnit="Cell" GridLinesVisibility="Horizontal" BorderBrush="#E0E6EC" CellEditEnding="PilotGrid_CellEditEnding">
          <DataGrid.Columns>
           <DataGridTextColumn Header="PILOT FIELD" Binding="{Binding Label}" IsReadOnly="True" Width="105"/>
           <DataGridTextColumn Header="FREQ MHz" Binding="{Binding FrequencyMhz, UpdateSourceTrigger=PropertyChanged}" Width="82"/>
@@ -86,8 +87,11 @@
          </DataGrid.Columns>
         </DataGrid>
         <TextBlock Text="* Calc. Input is an observed/manual reference only; no formula is applied. “U” is preserved as shown; its meaning is not assumed." Foreground="{StaticResource MutedBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,9,0,0"/>
+        <Border Background="#F5F8FA" CornerRadius="7" Padding="11" Margin="0,12,0,0"><StackPanel><TextBlock Text="Preceding amplifier target levels" FontSize="14" FontWeight="SemiBold"/><TextBlock x:Name="PrecedingReferenceText" Text="The standard line extender entry set has not been applied." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0"/></StackPanel></Border>
         <TextBlock Text="Values to enter" FontSize="16" FontWeight="SemiBold" Margin="0,15,0,6"/>
-        <Border Background="#FFF7E5" BorderBrush="#EBDDAF" BorderThickness="1" CornerRadius="7" Padding="11"><TextBlock Text="Needs verified equipment procedure. Pilot field mappings and calculations are unavailable until confirmed against the exact model and procedure. No values are guessed or sent to equipment." Foreground="#6D5721" TextWrapping="Wrap"/></Border>
+        <TextBlock x:Name="EntryGuidance" Text="Select Line extender to load the user-confirmed manual entry set." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,7"/>
+        <ItemsControl x:Name="EntryValuesList" ItemTemplate="{StaticResource PilotEntryTemplate}"/>
+        <Border Background="#FFF7E5" BorderBrush="#EBDDAF" BorderThickness="1" CornerRadius="7" Padding="11" Margin="0,5,0,0"><TextBlock Text="Manual reference only. No values are sent to the amplifier. Calculated Pilot values remain unavailable until the exact equipment model and procedure are verified." Foreground="#6D5721" TextWrapping="Wrap"/></Border>
        </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">

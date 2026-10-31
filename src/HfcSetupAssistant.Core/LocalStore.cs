@@ -9,12 +9,13 @@ public static class LocalStore
     public static string DataDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "InForment", "HFC Setup Assistant");
     public static string ProfilesPath => Path.Combine(DataDirectory, "profiles.json");
 
-    public static List<WorkProfile> LoadProfiles()
+    public static List<WorkProfile> LoadProfiles(string? path = null)
     {
+        path ??= ProfilesPath;
         try
         {
-            if (!File.Exists(ProfilesPath)) return [new WorkProfile()];
-            var profiles = JsonSerializer.Deserialize<List<WorkProfile>>(File.ReadAllText(ProfilesPath), JsonOptions);
+            if (!File.Exists(path)) return [new WorkProfile()];
+            var profiles = JsonSerializer.Deserialize<List<WorkProfile>>(File.ReadAllText(path), JsonOptions);
             return profiles is { Count: > 0 } ? profiles : [new WorkProfile()];
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
@@ -23,10 +24,10 @@ public static class LocalStore
         }
     }
 
-    public static void SaveProfiles(IEnumerable<WorkProfile> profiles)
+    public static void SaveProfiles(IEnumerable<WorkProfile> profiles, string? path = null)
     {
-        Directory.CreateDirectory(DataDirectory);
-        AtomicWrite(ProfilesPath, JsonSerializer.Serialize(profiles, JsonOptions));
+        path ??= ProfilesPath;
+        AtomicWrite(path, JsonSerializer.Serialize(profiles, JsonOptions));
     }
 
     public static void SaveJob(JobSession session, string path)
@@ -92,7 +93,16 @@ public static class LocalStore
             Add(lines, prefix, "Measured minus configured target", p.DeviationDb ?? "", "dB");
             Add(lines, prefix, "Calc. Input (observed)", p.CalcInputDbmv, "dBmV");
         }
+        foreach (var entry in PilotExample.GetLineExtenderEntries(session))
+            Add(lines, "Values to enter - user-confirmed LE set", entry.Destination, entry.Value, entry.Unit);
         foreach (var entry in session.ManualEntries) Add(lines, "Manual entry", entry.Destination, $"{entry.Value} ({entry.Basis})", entry.Unit);
+        if (session.PrecedingAmplifier is { } preceding)
+        {
+            Add(lines, "Preceding amplifier target levels", "High main", preceding.HighMainTargetDbmv, "dBmV");
+            Add(lines, "Preceding amplifier reference", preceding.SyncControlLabel, preceding.SyncControlNote, "");
+            Add(lines, "Preceding amplifier reference", "Cropped section", preceding.CroppedSectionNote, "");
+        }
+        else Add(lines, "Preceding amplifier reference", "Status", "Not recorded", "");
         Add(lines, "Notes", "Notes", session.Notes, "");
         AtomicWrite(path, string.Join(Environment.NewLine, lines));
     }

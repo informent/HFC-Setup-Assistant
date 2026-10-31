@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using HfcSetupAssistant.Core;
 using Microsoft.Win32;
 
@@ -14,6 +15,7 @@ public partial class MainWindow : Window
     private JobSession _session = new();
     private readonly List<WorkProfile> _profiles;
     private bool _loading;
+    private bool _profileInputsValid = true;
     private string? _currentPath;
     private readonly ObservableCollection<ManualEntry> _entries = [];
 
@@ -55,6 +57,8 @@ public partial class MainWindow : Window
         ProfilePicker.SelectedItem = match;
         ShowProfile(match);
         PilotGrid.ItemsSource = session.PilotColumns;
+        ShowPrecedingReference(session.PrecedingAmplifier);
+        RefreshEntryValues();
         _entries.Clear();
         foreach (var item in session.ManualEntries) _entries.Add(item);
         EntriesList.ItemsSource = _entries;
@@ -87,6 +91,7 @@ public partial class MainWindow : Window
         LowFrequency.Text = p.LowFrequencyMhz;
         HighFrequency.Text = p.HighFrequencyMhz;
         MeasurementPoint.Text = p.MeasurementPoint;
+        _profileInputsValid = TargetChecker.ValidateProfile(p) is null;
         _loading = false;
         Recalculate();
     }
@@ -102,14 +107,23 @@ public partial class MainWindow : Window
     {
         if (_loading || ProfilePicker.SelectedItem is not WorkProfile p) return;
         p.Name = string.IsNullOrWhiteSpace(ProfileName.Text) ? "Untitled profile" : ProfileName.Text.Trim();
-        if (Try(ProfileLowTarget.Text, out var low)) p.LowTargetDbmv = low;
-        if (Try(ProfileHighTarget.Text, out var high)) p.HighTargetDbmv = high;
-        if (Try(LowMinimum.Text, out var lowMin)) p.LowMinimumDbmv = lowMin;
-        if (Try(LowMaximum.Text, out var lowMax)) p.LowMaximumDbmv = lowMax;
-        if (Try(HighMinimum.Text, out var highMin)) p.HighMinimumDbmv = highMin;
-        if (Try(HighMaximum.Text, out var highMax)) p.HighMaximumDbmv = highMax;
-        if (Try(TiltMinimum.Text, out var tiltMin)) p.TiltMinimumDb = tiltMin;
-        if (Try(TiltMaximum.Text, out var tiltMax)) p.TiltMaximumDb = tiltMax;
+        var lowOk = Try(ProfileLowTarget.Text, out var low);
+        var highOk = Try(ProfileHighTarget.Text, out var high);
+        var lowMinOk = Try(LowMinimum.Text, out var lowMin);
+        var lowMaxOk = Try(LowMaximum.Text, out var lowMax);
+        var highMinOk = Try(HighMinimum.Text, out var highMin);
+        var highMaxOk = Try(HighMaximum.Text, out var highMax);
+        var tiltMinOk = Try(TiltMinimum.Text, out var tiltMin);
+        var tiltMaxOk = Try(TiltMaximum.Text, out var tiltMax);
+        _profileInputsValid = lowOk && highOk && lowMinOk && lowMaxOk && highMinOk && highMaxOk && tiltMinOk && tiltMaxOk;
+        if (_profileInputsValid)
+        {
+            p.LowTargetDbmv = low; p.HighTargetDbmv = high;
+            p.LowMinimumDbmv = lowMin; p.LowMaximumDbmv = lowMax;
+            p.HighMinimumDbmv = highMin; p.HighMaximumDbmv = highMax;
+            p.TiltMinimumDb = tiltMin; p.TiltMaximumDb = tiltMax;
+            _profileInputsValid = TargetChecker.ValidateProfile(p) is null;
+        }
         _session.Profile = CopyProfile(p);
         ProfilePicker.Items.Refresh();
         Recalculate();
@@ -147,6 +161,49 @@ public partial class MainWindow : Window
         profile.MeasurementPoint = MeasurementPoint.Text;
         _session.Profile = CopyProfile(profile);
         Recalculate();
+        RefreshEntryValues();
+    }
+
+    private void EquipmentType_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+        var type = (EquipmentType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Trunk";
+        if (type == "Line extender" && _session.EquipmentType != "Line extender" && PilotRowsAreBlank())
+        {
+            PilotExample.LoadLineExtenderSetup(_session);
+            PilotGrid.ItemsSource = null;
+            PilotGrid.ItemsSource = _session.PilotColumns;
+            ShowPrecedingReference(_session.PrecedingAmplifier);
+        }
+        InputChanged(sender, e);
+    }
+
+    private bool PilotRowsAreBlank() => _session.PilotColumns.All(column =>
+        string.IsNullOrWhiteSpace(column.FrequencyMhz) && string.IsNullOrWhiteSpace(column.MeasuredDbmv) &&
+        string.IsNullOrWhiteSpace(column.ConfiguredTargetDbmv) && string.IsNullOrWhiteSpace(column.CalcInputDbmv) &&
+        column.Type == "U" && column.StepDownDb == "0") && _session.PrecedingAmplifier is null;
+
+    private void LineExtenderPreset_Click(object sender, RoutedEventArgs e)
+    {
+        if (!PilotRowsAreBlank())
+        {
+            var answer = MessageBox.Show("Replace all four Pilot rows and the preceding-amplifier reference with the user-confirmed line extender entry set?", "Apply line extender entry set", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes) return;
+        }
+        _loading = true;
+        EquipmentType.SelectedIndex = 1;
+        _loading = false;
+        PilotExample.LoadLineExtenderSetup(_session);
+        PilotGrid.ItemsSource = null;
+        PilotGrid.ItemsSource = _session.PilotColumns;
+        ShowPrecedingReference(_session.PrecedingAmplifier);
+        RefreshEntryValues();
+        StatusText.Text = "User-confirmed line extender entry set applied · meter readings remain blank";
+    }
+
+    private void PilotGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(RefreshEntryValues));
     }
 
     private void Recalculate()
@@ -156,7 +213,9 @@ public partial class MainWindow : Window
         NominalLow.Text = $"{p.LowTargetDbmv:0.##} dBmV";
         NominalHigh.Text = $"{p.HighTargetDbmv:0.##} dBmV";
         NominalTilt.Text = $"{p.HighTargetDbmv - p.LowTargetDbmv:0.##} dB";
-        var result = TargetChecker.Evaluate(_session.LowReadingDbmv, _session.HighReadingDbmv, p);
+        var result = _profileInputsValid
+            ? TargetChecker.Evaluate(_session.LowReadingDbmv, _session.HighReadingDbmv, p)
+            : new CheckResult(false, "Correct the profile values and limits before PASS is available.", null, null, null, null, null, null, null, null);
         LowError.Text = Format(result.LowErrorDb, "dB");
         HighError.Text = Format(result.HighErrorDb, "dB");
         ActualTilt.Text = Format(result.ActualTiltDb, "dB");
@@ -179,8 +238,9 @@ public partial class MainWindow : Window
 
     private void SaveProfile_Click(object sender, RoutedEventArgs e)
     {
-        if (SelectedProfile.LowMinimumDbmv > SelectedProfile.LowMaximumDbmv || SelectedProfile.HighMinimumDbmv > SelectedProfile.HighMaximumDbmv || SelectedProfile.TiltMinimumDb > SelectedProfile.TiltMaximumDb)
-        { MessageBox.Show("Each minimum must be less than or equal to its maximum.", "Profile limits", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        var profileError = TargetChecker.ValidateProfile(SelectedProfile);
+        if (!_profileInputsValid || profileError is not null)
+        { MessageBox.Show(profileError ?? "Correct the invalid profile fields before saving.", "Profile values", MessageBoxButton.OK, MessageBoxImage.Information); return; }
         try { LocalStore.SaveProfiles(_profiles); StatusText.Text = $"Profile saved locally · {DateTime.Now:t}"; }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { ShowError("Could not save profile", ex); }
     }
@@ -197,10 +257,32 @@ public partial class MainWindow : Window
 
     private void Example_Click(object sender, RoutedEventArgs e)
     {
+        _loading = true;
+        EquipmentType.SelectedIndex = 1;
+        _loading = false;
         PilotExample.Load(_session);
         PilotGrid.ItemsSource = null;
         PilotGrid.ItemsSource = _session.PilotColumns;
-        StatusText.Text = "Loaded screenshot observations · work targets remain unchanged";
+        ShowPrecedingReference(_session.PrecedingAmplifier);
+        RefreshEntryValues();
+        StatusText.Text = "Loaded screenshot reference · work targets remain unchanged";
+    }
+
+    private void ShowPrecedingReference(PrecedingAmplifierReference? reference)
+    {
+        PrecedingReferenceText.Text = reference is null
+            ? "No preceding-amplifier target is recorded in this job."
+            : $"High main target: {reference.HighMainTargetDbmv} dBmV. “{reference.SyncControlLabel}” appears in the photo; {reference.SyncControlNote} {reference.CroppedSectionNote}";
+    }
+
+    private void RefreshEntryValues()
+    {
+        if (EntryValuesList is null) return;
+        var entries = PilotExample.GetLineExtenderEntries(_session);
+        EntryValuesList.ItemsSource = entries;
+        EntryGuidance.Text = entries.Count == 0
+            ? "Select Line extender or Apply LE entry set to load the user-confirmed manual values."
+            : "User-confirmed line extender values for manual entry. Measurements and Calc. Input remain blank for each new job.";
     }
 
     private void Open_Click(object sender, RoutedEventArgs e)
