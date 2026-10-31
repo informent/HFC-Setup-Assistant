@@ -12,7 +12,7 @@
    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
     <StackPanel><TextBlock Text="HFC SETUP ASSISTANT" Foreground="#9FD5D4" FontSize="12" FontWeight="Bold"/><TextBlock Text="Field readings and Pilot reference" Foreground="White" FontSize="24" FontWeight="SemiBold" Margin="0,3,0,0"/></StackPanel>
     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-     <Button Content="New job" Click="NewJob_Click"/><Button Content="Open…" Click="Open_Click"/><Button Content="Save job" Click="Save_Click"/><Button Content="Export CSV" Click="Export_Click" Background="#B6E3D3" Foreground="#12312A" BorderThickness="0"/>
+     <Button Content="New job" Click="NewJob_Click"/><Button Content="New LE job" Click="NewLineExtenderJob_Click"/><Button Content="Open…" Click="Open_Click"/><Button Content="Save job" Click="Save_Click"/><Button Content="Export CSV" Click="Export_Click" Background="#B6E3D3" Foreground="#12312A" BorderThickness="0"/>
     </StackPanel>
    </Grid>
   </Border>

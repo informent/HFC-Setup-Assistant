@@ -8,7 +8,7 @@ Download the single `HFC Setup Assistant.exe` from **GitHub Releases** and run i
 
 ## Field workflow
 
-1. Select trunk or line extender, enter the model and node/address/asset ID.
+1. Select **New LE job** to start a line extender session with the standard Pilot entry values prefilled, or **New job** for a blank session. Enter the equipment model and node/address/asset ID.
 2. Choose an existing work profile or select **New profile** to start from a copy of the current one. Edit the targets and limits, then use **Save profile** to persist it. Enter the low/high measurement frequencies and the meter measurement point/reference plane your crew uses.
 3. Enter low and high readings in dBmV. The app shows each level error, high-minus-low tilt, tilt error, each status, and the overall status. Blank or invalid readings remain incomplete.
 4. Use **Pilot reference** to record the observed fields in `HI MAIN`, `HI BACKUP`, `LO MAIN`, `LO BACKUP` order. **Load screenshot example** is a reference preset; it does not change the 28/38 work targets.

@@ -249,13 +249,26 @@ public partial class MainWindow : Window
 
     private void NewJob_Click(object sender, RoutedEventArgs e)
     {
-        var answer = MessageBox.Show("Start a blank job? Unsaved changes in this session will be cleared.", "New job", MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (answer != MessageBoxResult.Yes) return;
+        if (!ConfirmNewJob()) return;
         _currentPath = null;
         var session = new JobSession { Profile = CopyProfile(SelectedProfile), PilotColumns = Enumerable.Range(0, 4).Select(i => new PilotColumn { Label = PilotExample.Labels[i] }).ToArray() };
         LoadSessionToUi(session);
         StatusText.Text = "Blank job · readings are empty";
     }
+
+    private void NewLineExtenderJob_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ConfirmNewJob()) return;
+        _currentPath = null;
+        var session = new JobSession { Profile = CopyProfile(SelectedProfile) };
+        PilotExample.LoadLineExtenderSetup(session);
+        LoadSessionToUi(session);
+        StatusText.Text = "New line extender job · standard Pilot entry values loaded · readings are empty";
+    }
+
+    private bool ConfirmNewJob() => MessageBox.Show(
+        "Start a new job? Unsaved changes in this session will be cleared.",
+        "New job", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
     private void Example_Click(object sender, RoutedEventArgs e)
     {
