@@ -9,7 +9,7 @@ Run `HFC-Setup-Assistant.exe` and start a blank measurement session. The Windows
 ## Field workflow
 
 1. Select trunk or line extender, enter the model and node/address/asset ID.
-2. Choose or edit a work profile. Enter the low/high measurement frequencies and the meter measurement point/reference plane your crew uses.
+2. Choose an existing work profile or select **New profile** to start from a copy of the current one. Edit the targets and limits, then use **Save profile** to persist it. Enter the low/high measurement frequencies and the meter measurement point/reference plane your crew uses.
 3. Enter low and high readings in dBmV. The app shows each level error, high-minus-low tilt, tilt error, each status, and the overall status. Blank or invalid readings remain incomplete.
 4. Use **Pilot reference** to record the observed fields in `HI MAIN`, `HI BACKUP`, `LO MAIN`, `LO BACKUP` order. **Load screenshot example** is a reference preset; it does not change the 28/38 work targets.
 5. Save a `.hfcjob` file and optionally export a CSV field record. Local profiles are stored under `%LOCALAPPDATA%\InForment\HFC Setup Assistant`.
@@ -24,7 +24,7 @@ The **Values to enter** panel stays at “Needs verified equipment procedure.”
 
 ## Save, reopen, and export
 
-Use **Save job** to create or update a `.hfcjob` JSON session. **Open…** restores it later. A failed save or invalid file shows an error and leaves the active session open. Use **Save profile** after editing limits to persist the selected profile locally. CSV export includes the timestamp, equipment identity, frequencies, measurement point, readings, targets, calculations, status, Pilot values in screenshot order, manual entries, and notes.
+Use **Save job** to create or update a `.hfcjob` JSON session. **Open…** restores it later. A failed save or invalid file shows an error and leaves the active session open. Use **Save profile** after editing limits to persist the selected profile locally. CSV export includes the timestamp, equipment identity, profile name and limits, frequencies, measurement point, readings, targets, calculations, each individual check status and overall status, Pilot values in screenshot order, manual entries, and notes.
 
 ## Build from source
 

@@ -23,7 +23,7 @@
       <StackPanel Margin="0,0,14,0"><TextBlock Text="Equipment" FontSize="12" Foreground="{StaticResource MutedBrush}"/><ComboBox x:Name="EquipmentType" SelectedIndex="0" SelectionChanged="InputChanged"><ComboBoxItem Content="Trunk"/><ComboBoxItem Content="Line extender"/></ComboBox></StackPanel>
       <StackPanel Grid.Column="1" Margin="0,0,14,0"><TextBlock Text="Equipment model" FontSize="12" Foreground="{StaticResource MutedBrush}"/><TextBox x:Name="EquipmentModel" TextChanged="InputChanged"/></StackPanel>
       <StackPanel Grid.Column="2" Margin="0,0,14,0"><TextBlock Text="Node / address / asset ID" FontSize="12" Foreground="{StaticResource MutedBrush}"/><TextBox x:Name="AssetId" TextChanged="InputChanged"/></StackPanel>
-      <StackPanel Grid.Column="3"><TextBlock Text="Profile" FontSize="12" Foreground="{StaticResource MutedBrush}"/><DockPanel><ComboBox x:Name="ProfilePicker" SelectionChanged="ProfilePicker_Changed"/><Button Content="Save profile" Click="SaveProfile_Click" MinHeight="38" Padding="9,5"/></DockPanel></StackPanel>
+     <StackPanel Grid.Column="3"><TextBlock Text="Profile" FontSize="12" Foreground="{StaticResource MutedBrush}"/><DockPanel><ComboBox x:Name="ProfilePicker" SelectionChanged="ProfilePicker_Changed"/><Button Content="New profile" Click="NewProfile_Click" MinHeight="38" Padding="9,5"/><Button Content="Save profile" Click="SaveProfile_Click" MinHeight="38" Padding="9,5" Margin="0"/></DockPanel></StackPanel>
      </Grid>
     </Border>
     <Grid>

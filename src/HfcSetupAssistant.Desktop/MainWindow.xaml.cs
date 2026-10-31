@@ -115,6 +115,23 @@ public partial class MainWindow : Window
         Recalculate();
     }
 
+    private void NewProfile_Click(object sender, RoutedEventArgs e)
+    {
+        var profile = CopyProfile(SelectedProfile);
+        var rootName = "New profile";
+        var name = rootName;
+        var suffix = 2;
+        while (_profiles.Any(existing => existing.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) name = $"{rootName} {suffix++}";
+        profile.Name = name;
+        _profiles.Add(profile);
+        ProfilePicker.Items.Refresh();
+        ProfilePicker.SelectedItem = profile;
+        ShowProfile(profile);
+        StatusText.Text = "New profile created · choose Save profile to persist it";
+        ProfileName.Focus();
+        ProfileName.SelectAll();
+    }
+
     private void InputChanged(object sender, EventArgs e)
     {
         if (_loading) return;

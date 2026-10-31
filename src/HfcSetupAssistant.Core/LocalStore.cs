@@ -56,18 +56,28 @@ public static class LocalStore
         Add(lines, "Equipment", "Type", session.EquipmentType, "");
         Add(lines, "Equipment", "Model", session.EquipmentModel, "");
         Add(lines, "Equipment", "Asset ID", session.AssetId, "");
+        Add(lines, "Profile", "Name", session.Profile.Name, "");
         Add(lines, "Measurement", "Low frequency", session.Profile.LowFrequencyMhz, "MHz");
         Add(lines, "Measurement", "High frequency", session.Profile.HighFrequencyMhz, "MHz");
         Add(lines, "Measurement", "Measurement point", session.Profile.MeasurementPoint, "");
         Add(lines, "Measurement", "Low reading", session.LowReadingDbmv, "dBmV");
         Add(lines, "Measurement", "High reading", session.HighReadingDbmv, "dBmV");
-        Add(lines, "Target", "Low nominal", session.Profile.LowTargetDbmv.ToString(), "dBmV");
-        Add(lines, "Target", "High nominal", session.Profile.HighTargetDbmv.ToString(), "dBmV");
+        Add(lines, "Target", "Low nominal", Number(session.Profile.LowTargetDbmv), "dBmV");
+        Add(lines, "Target", "Low minimum", Number(session.Profile.LowMinimumDbmv), "dBmV");
+        Add(lines, "Target", "Low maximum", Number(session.Profile.LowMaximumDbmv), "dBmV");
+        Add(lines, "Target", "High nominal", Number(session.Profile.HighTargetDbmv), "dBmV");
+        Add(lines, "Target", "High minimum", Number(session.Profile.HighMinimumDbmv), "dBmV");
+        Add(lines, "Target", "High maximum", Number(session.Profile.HighMaximumDbmv), "dBmV");
+        Add(lines, "Target", "Tilt minimum", Number(session.Profile.TiltMinimumDb), "dB");
+        Add(lines, "Target", "Tilt maximum", Number(session.Profile.TiltMaximumDb), "dB");
         var result = TargetChecker.Evaluate(session.LowReadingDbmv, session.HighReadingDbmv, session.Profile);
         Add(lines, "Calculation", "Low error", result.LowErrorDb?.ToString() ?? "", "dB");
         Add(lines, "Calculation", "High error", result.HighErrorDb?.ToString() ?? "", "dB");
         Add(lines, "Calculation", "Actual tilt", result.ActualTiltDb?.ToString() ?? "", "dB");
         Add(lines, "Calculation", "Tilt error", result.TiltErrorDb?.ToString() ?? "", "dB");
+        Add(lines, "Validation", "Low level", Status(result.LowPass), "");
+        Add(lines, "Validation", "High level", Status(result.HighPass), "");
+        Add(lines, "Validation", "Tilt", Status(result.TiltPass), "");
         Add(lines, "Validation", "Overall", result.OverallPass?.ToString() ?? "Incomplete", "");
         Add(lines, "Validation", "Status", result.Message, "");
         for (var i = 0; i < session.PilotColumns.Length; i++)
@@ -89,6 +99,9 @@ public static class LocalStore
 
     private static void Add(List<string> lines, string section, string field, string value, string unit) =>
         lines.Add(string.Join(',', new[] { section, field, value, unit }.Select(Escape)));
+
+    private static string Number(decimal value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private static string Status(bool? status) => status switch { true => "PASS", false => "FAIL", null => "Incomplete" };
 
     private static string Escape(string value) => "\"" + value.Replace("\"", "\"\"").Replace("\r", " ").Replace("\n", " ") + "\"";
 

@@ -92,13 +92,20 @@ static void CsvOrder()
     var path = Path.Combine(Path.GetTempPath(), $"hfc-check-{Guid.NewGuid():N}.csv");
     try
     {
-        var job = new JobSession(); PilotExample.Load(job); LocalStore.ExportCsv(job, path);
+        var job = new JobSession { LowReadingDbmv = "27", HighReadingDbmv = "39" };
+        job.Profile.LowFrequencyMhz = "141"; job.Profile.HighFrequencyMhz = "711"; job.Profile.MeasurementPoint = "Verified test point";
+        PilotExample.Load(job); LocalStore.ExportCsv(job, path);
         var csv = File.ReadAllText(path);
         var labels = new[] { "HI MAIN", "HI BACKUP", "LO MAIN", "LO BACKUP" };
         var positions = labels.Select(label => csv.IndexOf(label, StringComparison.Ordinal)).ToArray();
         Equal(true, positions.SequenceEqual(positions.Order()));
         Equal(true, csv.Contains("dBmV") && csv.Contains("MHz") && csv.Contains("dB"));
         Equal(true, csv.Contains("\"-2.2\",\"dB\""));
+        Equal(true, csv.Contains("\"Low level\",\"PASS\""));
+        Equal(true, csv.Contains("\"High level\",\"PASS\""));
+        Equal(true, csv.Contains("\"Tilt\",\"FAIL\""));
+        Equal(true, csv.Contains("\"Low minimum\",\"27\",\"dBmV\""));
+        Equal(true, csv.Contains("\"Profile\",\"Name\",\"My field targets\""));
     }
     finally { if (File.Exists(path)) File.Delete(path); }
 }
